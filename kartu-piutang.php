@@ -219,7 +219,7 @@ include 'includes/header.php';
                     </tr>
                     <tr>
                         <td class="fw-semibold">Syarat</td>
-                        <td>: Net 30</td>
+                        <td>: Wajib Lunas</td>
                     </tr>
                     <tr>
                         <td class="fw-semibold">Batas Kredit</td>
@@ -313,10 +313,6 @@ include 'includes/header.php';
         <button onclick="window.print()" class="btn btn-success">
             <i class="bi bi-printer me-1"></i>Cetak Kartu Piutang
         </button>
-        <a href="cetak-kartu-piutang.php?id_pelanggan=<?php echo $id_pelanggan; ?>" 
-           target="_blank" class="btn btn-info">
-            <i class="bi bi-file-pdf me-1"></i>Cetak Detail (PDF View)
-        </a>
     </div>
 </div>
 

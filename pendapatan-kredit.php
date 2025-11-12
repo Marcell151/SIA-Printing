@@ -14,66 +14,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id_pelanggan = clean_input($_POST['id_pelanggan']);
     $jenis_jasa = clean_input($_POST['jenis_jasa']);
     $kategori = clean_input($_POST['kategori']);
-    $total = floatval(str_replace('.', '', $_POST['total'])); // Hapus pemisah ribuan
+    $total = floatval(str_replace('.', '', $_POST['total']));
     $dibayar = floatval(str_replace('.', '', $_POST['dibayar']));
     $jatuh_tempo = clean_input($_POST['jatuh_tempo']);
     $keterangan = clean_input($_POST['keterangan']);
     $created_by = $_SESSION['user_id'];
-    // ===== VALIDASI TAMBAHAN =====
     
-    // 1. Validasi Total tidak boleh 0 atau negatif
+    // ===== VALIDASI =====
     if ($total <= 0) {
         alert('Total transaksi harus lebih dari 0!', 'danger');
         redirect('pendapatan-kredit.php');
         exit;
     }
     
-    // 2. Validasi DP tidak boleh melebihi total
     if ($dibayar > $total) {
         alert('DP/Dibayar tidak boleh melebihi total transaksi!', 'danger');
         redirect('pendapatan-kredit.php');
         exit;
     }
     
-    // 3. Validasi DP tidak boleh negatif
     if ($dibayar < 0) {
         alert('DP/Dibayar tidak boleh negatif!', 'danger');
         redirect('pendapatan-kredit.php');
         exit;
     }
     
-    // 4. Validasi Jatuh Tempo harus lebih besar dari tanggal transaksi
     if (strtotime($jatuh_tempo) < strtotime($tanggal)) {
         alert('Jatuh tempo harus setelah tanggal transaksi!', 'danger');
         redirect('pendapatan-kredit.php');
         exit;
     }
     
-    // 5. Validasi Jatuh Tempo maksimal 90 hari
     $selisih_hari = (strtotime($jatuh_tempo) - strtotime($tanggal)) / (60 * 60 * 24);
     if ($selisih_hari > 90) {
         alert('Peringatan: Jatuh tempo lebih dari 90 hari dari tanggal transaksi!', 'warning');
-        // Tidak redirect, hanya peringatan
     }
     
-    // Auto-suggest jatuh tempo jika kosong (default 30 hari)
     if (empty($jatuh_tempo)) {
         $jatuh_tempo = date('Y-m-d', strtotime($tanggal . ' +30 days'));
     }
     
     $sisa = $total - $dibayar;
-    
-    // Generate nomor piutang
     $no_piutang = generate_no_piutang();
-    
-    // Status
     $status = ($sisa <= 0) ? 'Lunas' : 'Belum Lunas';
     
-    // Begin Transaction untuk memastikan konsistensi data
+    // Begin Transaction
     $conn->begin_transaction();
     
     try {
-        // Insert piutang
+        // 1. Insert piutang (TANPA field dibayar, karena akan ditrack di pembayaran_piutang)
         $stmt = $conn->prepare("INSERT INTO piutang 
         (no_piutang, tanggal, id_pelanggan, jenis_jasa, kategori, total, dibayar, sisa, jatuh_tempo, status, created_by) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
@@ -84,23 +73,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $jenis_jasa, 
             $kategori, 
             $total, 
-            $dibayar, 
+            $dibayar,
             $sisa, 
             $jatuh_tempo, 
             $status, 
             $created_by
         );
     
-    if (!$stmt->execute()) {
+        if (!$stmt->execute()) {
             throw new Exception("Gagal insert piutang: " . $stmt->error);
         }
         
         $id_piutang = $stmt->insert_id;
         
-        // Get akun ID
+        // 2. Catat DP ke tabel pembayaran_piutang (PENTING!)
+        if ($dibayar > 0) {
+            $stmt2 = $conn->prepare("INSERT INTO pembayaran_piutang 
+                    (tanggal, id_piutang, jumlah_bayar, is_dp, cicilan_ke, metode_pembayaran, keterangan, created_by) 
+                    VALUES (?, ?, ?, 1, 0, ?, ?, ?)");
+            $metode_dp = 'Tunai'; // Default, bisa diganti jadi input form
+            $ket_dp = 'DP / Pembayaran Awal';
+            $stmt2->bind_param("sidssi", $tanggal, $id_piutang, $dibayar, $metode_dp, $ket_dp, $created_by);
+            
+            if (!$stmt2->execute()) {
+                throw new Exception("Gagal insert DP: " . $stmt2->error);
+            }
+        }
+        
+        // 3. Get akun ID
         $piutang_akun = $conn->query("SELECT id_akun FROM master_akun WHERE kode_akun = '1-102'")->fetch_assoc()['id_akun'];
         
-        // Determine pendapatan account
         $kode_pendapatan = '';
         switch($kategori) {
             case 'Printing': $kode_pendapatan = '4-101'; break;
@@ -112,11 +114,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pendapatan_akun = $conn->query("SELECT id_akun FROM master_akun WHERE kode_akun = '$kode_pendapatan'")->fetch_assoc()['id_akun'];
         $kas_akun = $conn->query("SELECT id_akun FROM master_akun WHERE kode_akun = '1-101'")->fetch_assoc()['id_akun'];
         
-        // Create jurnal entry: Debit Piutang, Kredit Pendapatan
+        // 4. Jurnal: Debit Piutang, Kredit Pendapatan
         $deskripsi = "Pendapatan Kredit - $jenis_jasa - $no_piutang";
         insert_jurnal($tanggal, $deskripsi, $piutang_akun, $pendapatan_akun, $total, $no_piutang, "Pendapatan Kredit");
         
-        // Jika ada DP, buat jurnal: Debit Kas, Kredit Piutang
+        // 5. Jika ada DP, jurnal: Debit Kas, Kredit Piutang
         if ($dibayar > 0) {
             $deskripsi_dp = "DP Piutang - $no_piutang";
             $jurnal_dp_result = insert_jurnal($tanggal, $deskripsi_dp, $kas_akun, $piutang_akun, $dibayar, $no_piutang, "DP Piutang");
@@ -133,7 +135,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect('pendapatan-kredit.php');
         
     } catch (Exception $e) {
-        // Rollback jika terjadi error
         $conn->rollback();
         alert('Gagal menyimpan transaksi: ' . $e->getMessage(), 'danger');
         redirect('pendapatan-kredit.php');
@@ -214,6 +215,7 @@ include 'includes/header.php';
                         <label class="form-label">DP / Dibayar (Rp)</label>
                         <input type="text" name="dibayar" id="dibayar_piutang" class="form-control" 
                                placeholder="0" value="0" min="0" step="100">
+                        <small class="text-muted">Opsional - kosongkan jika belum ada DP</small>
                     </div>
 
                     <div class="mb-3">
@@ -227,44 +229,18 @@ include 'includes/header.php';
                         <label class="form-label">Jatuh Tempo <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <input type="date" name="jatuh_tempo" id="jatuh_tempo" class="form-control" required>
-                            <button type="button" class="btn btn-outline-secondary" onclick="setJatuhTempo(7)" title="7 hari dari sekarang">
+                            <button type="button" class="btn btn-outline-secondary" onclick="setJatuhTempo(7)">
                                 7 hari
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="setJatuhTempo(14)" title="14 hari dari sekarang">
+                            <button type="button" class="btn btn-outline-secondary" onclick="setJatuhTempo(14)">
                                 14 hari
                             </button>
-                            <button type="button" class="btn btn-outline-secondary" onclick="setJatuhTempo(30)" title="30 hari dari sekarang">
+                            <button type="button" class="btn btn-outline-secondary" onclick="setJatuhTempo(30)">
                                 30 hari
                             </button>
                         </div>
-                        <small class="text-muted">Atau pilih quick button: 7, 14, atau 30 hari dari tanggal transaksi</small>
+                        <small class="text-muted">Quick button: 7, 14, atau 30 hari dari tanggal transaksi</small>
                     </div>
-
-                    <script>
-                    function setJatuhTempo(hari) {
-                        const tanggal = document.querySelector('input[name="tanggal"]').value;
-                        if (!tanggal) {
-                            alert('Pilih tanggal transaksi terlebih dahulu');
-                            return;
-                        }
-                        
-                        const date = new Date(tanggal);
-                        date.setDate(date.getDate() + hari);
-                        
-                        const year = date.getFullYear();
-                        const month = String(date.getMonth() + 1).padStart(2, '0');
-                        const day = String(date.getDate()).padStart(2, '0');
-                        
-                        document.getElementById('jatuh_tempo').value = `${year}-${month}-${day}`;
-                    }
-                    
-                    // Auto-set jatuh tempo 30 hari saat tanggal berubah
-                    document.querySelector('input[name="tanggal"]').addEventListener('change', function() {
-                        if (!document.getElementById('jatuh_tempo').value) {
-                            setJatuhTempo(30);
-                        }
-                    });
-                    </script>
 
                     <div class="mb-3">
                         <label class="form-label">Keterangan</label>
@@ -275,46 +251,6 @@ include 'includes/header.php';
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-save me-2"></i>Simpan Transaksi
                     </button>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            const inputTotal = document.getElementById('total_piutang');
-                            const inputDibayar = document.getElementById('dibayar_piutang');
-                            const sisaDisplay = document.getElementById('sisa_piutang');
-
-                            function formatRibuan(angka) {
-                                return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                            }
-
-                            function bersihkan(angka) {
-                                return parseInt(angka.replace(/\./g, '')) || 0;
-                            }
-
-                            function hitungSisa() {
-                                const total = bersihkan(inputTotal.value);
-                                const dibayar = bersihkan(inputDibayar.value);
-                                const sisa = total - dibayar;
-
-                                sisaDisplay.textContent = "Rp " + formatRibuan(sisa >= 0 ? sisa : 0);
-                            }
-
-                            function formatInput(input) {
-                                input.addEventListener('input', function() {
-                                    let nilai = bersihkan(this.value);
-                                    this.value = nilai > 0 ? formatRibuan(nilai) : '';
-                                    hitungSisa();
-                                });
-                            }
-
-                            formatInput(inputTotal);
-                            formatInput(inputDibayar);
-
-                            // Saat submit form → angka dikembalikan ke format murni
-                            document.getElementById('formPiutang').addEventListener('submit', function() {
-                                inputTotal.value = bersihkan(inputTotal.value);
-                                inputDibayar.value = bersihkan(inputDibayar.value);
-                            });
-                        });
-                        </script>
                 </form>
             </div>
         </div>
@@ -347,7 +283,7 @@ include 'includes/header.php';
                                         <td><?php echo format_tanggal($row['tanggal']); ?></td>
                                         <td>
                                             <?php echo $row['nama_pelanggan']; ?><br>
-                                            <small class="text-muted"><?php echo $row['jenis_jasa']; ?></small>
+                                            <small class="text-muted"><?php echo substr($row['jenis_jasa'], 0, 30); ?></small>
                                         </td>
                                         <td class="text-end fw-bold">
                                             <?php echo format_rupiah($row['total']); ?>
@@ -376,5 +312,68 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+
+<script>
+function setJatuhTempo(hari) {
+    const tanggal = document.querySelector('input[name="tanggal"]').value;
+    if (!tanggal) {
+        alert('Pilih tanggal transaksi terlebih dahulu');
+        return;
+    }
+    
+    const date = new Date(tanggal);
+    date.setDate(date.getDate() + hari);
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    document.getElementById('jatuh_tempo').value = `${year}-${month}-${day}`;
+}
+
+document.querySelector('input[name="tanggal"]').addEventListener('change', function() {
+    if (!document.getElementById('jatuh_tempo').value) {
+        setJatuhTempo(30);
+    }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const inputTotal = document.getElementById('total_piutang');
+    const inputDibayar = document.getElementById('dibayar_piutang');
+    const sisaDisplay = document.getElementById('sisa_piutang');
+
+    function formatRibuan(angka) {
+        return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+
+    function bersihkan(angka) {
+        return parseInt(angka.replace(/\./g, '')) || 0;
+    }
+
+    function hitungSisa() {
+        const total = bersihkan(inputTotal.value);
+        const dibayar = bersihkan(inputDibayar.value);
+        const sisa = total - dibayar;
+
+        sisaDisplay.textContent = "Rp " + formatRibuan(sisa >= 0 ? sisa : 0);
+    }
+
+    function formatInput(input) {
+        input.addEventListener('input', function() {
+            let nilai = bersihkan(this.value);
+            this.value = nilai > 0 ? formatRibuan(nilai) : '';
+            hitungSisa();
+        });
+    }
+
+    formatInput(inputTotal);
+    formatInput(inputDibayar);
+
+    document.getElementById('formPiutang').addEventListener('submit', function() {
+        inputTotal.value = bersihkan(inputTotal.value);
+        inputDibayar.value = bersihkan(inputDibayar.value);
+    });
+});
+</script>
 
 <?php include 'includes/footer.php'; ?>

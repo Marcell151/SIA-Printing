@@ -9,7 +9,7 @@ $current_page = 'penerimaan-piutang';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tanggal = clean_input($_POST['tanggal']);
     $id_piutang = clean_input($_POST['id_piutang']);
-    $jumlah_bayar = floatval($_POST['jumlah_bayar']);
+    $jumlah_bayar = floatval(str_replace('.', '', $_POST['jumlah_bayar']));
     $metode = clean_input($_POST['metode_pembayaran']);
     $keterangan = clean_input($_POST['keterangan']);
     $created_by = $_SESSION['user_id'];
@@ -21,54 +21,84 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         alert('Data piutang tidak ditemukan!', 'danger');
     } else if ($jumlah_bayar > $piutang['sisa']) {
         alert('Jumlah pembayaran melebihi sisa piutang!', 'danger');
+    } else if ($jumlah_bayar <= 0) {
+        alert('Jumlah pembayaran harus lebih dari 0!', 'danger');
     } else {
-        // Insert pembayaran
-        $stmt = $conn->prepare("INSERT INTO pembayaran_piutang 
-                (tanggal, id_piutang, jumlah_bayar, metode_pembayaran, keterangan, created_by) 
-                VALUES (?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("sidssi", $tanggal, $id_piutang, $jumlah_bayar, $metode, $keterangan, $created_by);
+        $conn->begin_transaction();
         
-        if ($stmt->execute()) {
-            // Update piutang
+        try {
+            // 1. Hitung cicilan ke berapa
+            $query_cicilan = "SELECT COALESCE(MAX(cicilan_ke), 0) as last_cicilan 
+                             FROM pembayaran_piutang 
+                             WHERE id_piutang = $id_piutang AND is_dp = 0";
+            $last_cicilan = $conn->query($query_cicilan)->fetch_assoc()['last_cicilan'];
+            $cicilan_ke = $last_cicilan + 1;
+            
+            // 2. Insert pembayaran (is_dp = 0 untuk cicilan)
+            $stmt = $conn->prepare("INSERT INTO pembayaran_piutang 
+                    (tanggal, id_piutang, jumlah_bayar, is_dp, cicilan_ke, metode_pembayaran, keterangan, created_by) 
+                    VALUES (?, ?, ?, 0, ?, ?, ?, ?)");
+            $stmt->bind_param("sidissi", $tanggal, $id_piutang, $jumlah_bayar, $cicilan_ke, $metode, $keterangan, $created_by);
+            
+            if (!$stmt->execute()) {
+                throw new Exception("Gagal insert pembayaran: " . $stmt->error);
+            }
+            
+            // 3. Update piutang
             $sisa_baru = $piutang['sisa'] - $jumlah_bayar;
             $dibayar_baru = $piutang['dibayar'] + $jumlah_bayar;
             $status_baru = ($sisa_baru <= 0) ? 'Lunas' : 'Belum Lunas';
             
-            $conn->query("UPDATE piutang SET 
-                         dibayar = $dibayar_baru, 
-                         sisa = $sisa_baru, 
-                         status = '$status_baru' 
-                         WHERE id_piutang = $id_piutang");
+            $update_stmt = $conn->prepare("UPDATE piutang SET 
+                         dibayar = ?, 
+                         sisa = ?, 
+                         status = ? 
+                         WHERE id_piutang = ?");
+            $update_stmt->bind_param("ddsi", $dibayar_baru, $sisa_baru, $status_baru, $id_piutang);
             
-            // Get akun ID
+            if (!$update_stmt->execute()) {
+                throw new Exception("Gagal update piutang: " . $update_stmt->error);
+            }
+            
+            // 4. Get akun ID
             $kas_akun = $conn->query("SELECT id_akun FROM master_akun WHERE kode_akun = '1-101'")->fetch_assoc()['id_akun'];
             $piutang_akun = $conn->query("SELECT id_akun FROM master_akun WHERE kode_akun = '1-102'")->fetch_assoc()['id_akun'];
             
-            // Create jurnal entry: Debit Kas, Kredit Piutang
-            $deskripsi = "Penerimaan Pembayaran Piutang - " . $piutang['no_piutang'];
-            insert_jurnal($tanggal, $deskripsi, $kas_akun, $piutang_akun, $jumlah_bayar, $piutang['no_piutang'], "Penerimaan Piutang");
+            // 5. Create jurnal entry: Debit Kas, Kredit Piutang
+            $deskripsi = "Penerimaan Pembayaran Piutang - " . $piutang['no_piutang'] . " (Cicilan ke-$cicilan_ke)";
+            $jurnal_result = insert_jurnal($tanggal, $deskripsi, $kas_akun, $piutang_akun, $jumlah_bayar, $piutang['no_piutang'], "Penerimaan Piutang");
             
-            alert('Penerimaan pembayaran piutang berhasil disimpan!', 'success');
+            if (!$jurnal_result) {
+                throw new Exception("Gagal insert jurnal");
+            }
+            
+            $conn->commit();
+            
+            alert("Pembayaran piutang berhasil dicatat! Cicilan ke-$cicilan_ke - " . format_rupiah($jumlah_bayar), 'success');
             redirect('penerimaan-piutang.php');
-        } else {
-            alert('Gagal menyimpan pembayaran: ' . $conn->error, 'danger');
+            
+        } catch (Exception $e) {
+            $conn->rollback();
+            alert('Gagal menyimpan pembayaran: ' . $e->getMessage(), 'danger');
         }
     }
 }
 
 // Get piutang belum lunas
-$piutang_list = $conn->query("SELECT p.*, mp.nama_pelanggan 
+$piutang_list = $conn->query("SELECT p.*, mp.nama_pelanggan,
+                               (SELECT COUNT(*) FROM pembayaran_piutang WHERE id_piutang = p.id_piutang AND is_dp = 0) as jumlah_cicilan
                                FROM piutang p
                                LEFT JOIN master_pelanggan mp ON p.id_pelanggan = mp.id_pelanggan
                                WHERE p.status = 'Belum Lunas'
                                ORDER BY p.tanggal ASC");
 
 // Get recent pembayaran
-$recent = $conn->query("SELECT pp.*, p.no_piutang, mp.nama_pelanggan
+$recent = $conn->query("SELECT pp.*, p.no_piutang, mp.nama_pelanggan,
+                        CASE WHEN pp.is_dp = 1 THEN 'DP' ELSE CONCAT('Cicilan ke-', pp.cicilan_ke) END as jenis_bayar
                         FROM pembayaran_piutang pp
                         JOIN piutang p ON pp.id_piutang = p.id_piutang
                         LEFT JOIN master_pelanggan mp ON p.id_pelanggan = mp.id_pelanggan
-                        ORDER BY pp.created_at DESC LIMIT 10");
+                        ORDER BY pp.created_at DESC LIMIT 15");
 
 include 'includes/header.php';
 ?>
@@ -92,7 +122,7 @@ include 'includes/header.php';
                 <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Input Pembayaran</h5>
             </div>
             <div class="card-body">
-                <form method="POST" action="">
+                <form method="POST" action="" id="formBayar">
                     <div class="mb-3">
                         <label class="form-label">Tanggal <span class="text-danger">*</span></label>
                         <input type="date" name="tanggal" class="form-control" 
@@ -105,7 +135,10 @@ include 'includes/header.php';
                             <option value="">-- Pilih Piutang --</option>
                             <?php while ($p = $piutang_list->fetch_assoc()): ?>
                                 <option value="<?php echo $p['id_piutang']; ?>" 
-                                        data-sisa="<?php echo $p['sisa']; ?>">
+                                        data-sisa="<?php echo $p['sisa']; ?>"
+                                        data-total="<?php echo $p['total']; ?>"
+                                        data-dibayar="<?php echo $p['dibayar']; ?>"
+                                        data-cicilan="<?php echo $p['jumlah_cicilan']; ?>">
                                     <?php echo $p['no_piutang']; ?> - 
                                     <?php echo $p['nama_pelanggan']; ?> - 
                                     Sisa: <?php echo format_rupiah($p['sisa']); ?>
@@ -115,16 +148,35 @@ include 'includes/header.php';
                     </div>
 
                     <div class="mb-3" id="infoPiutang" style="display: none;">
-                        <div class="alert alert-info">
-                            <strong>Sisa Piutang:</strong>
-                            <span id="sisaPiutangDisplay" class="fw-bold">Rp 0</span>
-                        </div>
+                        <!-- <div class="label">
+                                <div class="col-6">
+                                    <medium class="text-muted d-block">Total Piutang</medium>
+                                    <strong id="totalPiutangDisplay">Rp 0</strong>
+                                </div>
+                            <hr class="my-2">
+                                <div class="col-6">
+                                    <medium class="text-muted d-block">Sudah Dibayar</medium>
+                                    <strong id="dibayarDisplay">Rp 0</strong>
+                                </div>
+                            <hr class="my-2">
+                                <div class="col-6">
+                                    <medium class="text-muted d-block">Cicilan ke</medium>
+                                    <strong id="cicilanKeDisplay">-</strong>
+                                </div>
+                            <hr class="my-2">
+                                <div class="col-6">
+                                    <medium class="text-muted d-block">Sisa Piutang</medium>
+                                    <strong class="text-danger" id="sisaPiutangDisplay">Rp 0</strong>
+                                </div>
+                            <hr class="my-2">
+                        </div> -->
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Jumlah Bayar (Rp) <span class="text-danger">*</span></label>
                         <input type="text" name="jumlah_bayar" id="jumlahBayar" class="form-control" 
                                placeholder="0" required min="0" step="100">
+                        <small class="text-muted">Maksimal sesuai sisa piutang</small>
                     </div>
 
                     <div class="mb-3">
@@ -146,30 +198,6 @@ include 'includes/header.php';
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="bi bi-save me-2"></i>Simpan Pembayaran
                     </button>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            const inputJumlah = document.querySelector('input[name="jumlah"]');
-
-                            inputJumlah.addEventListener('input', function() {
-                                // Hapus karakter selain angka
-                                let value = this.value.replace(/\D/g, '');
-
-                                // Jika kosong, langsung kosongkan
-                                if (!value) {
-                                    this.value = '';
-                                    return;
-                                }
-
-                                // Format dengan titik ribuan
-                                this.value = value.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-                            });
-
-                            // Saat form submit → hapus titik supaya data masuk ke DB sebagai angka murni
-                            inputJumlah.form.addEventListener('submit', function() {
-                                inputJumlah.value = inputJumlah.value.replace(/\./g, '');
-                            });
-                        });
-                        </script>
                 </form>
             </div>
         </div>
@@ -193,6 +221,9 @@ include 'includes/header.php';
                                         <small class="text-muted"><?php echo $p['nama_pelanggan']; ?></small><br>
                                         <small class="text-muted">
                                             Jatuh Tempo: <?php echo format_tanggal($p['jatuh_tempo']); ?>
+                                            <?php if ($p['jumlah_cicilan'] > 0): ?>
+                                                <br><span class="badge bg-info"><?php echo $p['jumlah_cicilan']; ?> cicilan</span>
+                                            <?php endif; ?>
                                         </small>
                                     </div>
                                     <div class="text-end">
@@ -231,6 +262,7 @@ include 'includes/header.php';
                                 <th>Tanggal</th>
                                 <th>No. Piutang</th>
                                 <th>Pelanggan</th>
+                                <th>Jenis</th>
                                 <th class="text-end">Jumlah Bayar</th>
                                 <th>Metode</th>
                             </tr>
@@ -242,19 +274,24 @@ include 'includes/header.php';
                                         <td><?php echo format_tanggal($row['tanggal']); ?></td>
                                         <td><strong><?php echo $row['no_piutang']; ?></strong></td>
                                         <td><?php echo $row['nama_pelanggan']; ?></td>
+                                        <td>
+                                            <span class="badge <?php echo ($row['is_dp'] == 1) ? 'bg-warning' : 'bg-info'; ?>">
+                                                <?php echo $row['jenis_bayar']; ?>
+                                            </span>
+                                        </td>
                                         <td class="text-end fw-bold text-success">
                                             <?php echo format_rupiah($row['jumlah_bayar']); ?>
                                         </td>
                                         <td>
-                                            <span class="badge bg-info">
+                                            <small class="text-muted">
                                                 <?php echo $row['metode_pembayaran']; ?>
-                                            </span>
+                                            </small>
                                         </td>
                                     </tr>
                                 <?php endwhile; ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-4">
+                                    <td colspan="6" class="text-center text-muted py-4">
                                         Belum ada pembayaran
                                     </td>
                                 </tr>
@@ -268,18 +305,46 @@ include 'includes/header.php';
 </div>
 
 <script>
-// Show sisa piutang when piutang selected
+function formatRupiah(angka) {
+    return angka.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function bersihkan(angka) {
+    return parseInt(angka.replace(/\./g, '')) || 0;
+}
+
+// Show info piutang when selected
 document.getElementById('selectPiutang').addEventListener('change', function() {
     const selectedOption = this.options[this.selectedIndex];
-    const sisa = selectedOption.getAttribute('data-sisa');
     
     if (this.value) {
+        const sisa = parseFloat(selectedOption.getAttribute('data-sisa'));
+        const total = parseFloat(selectedOption.getAttribute('data-total'));
+        const dibayar = parseFloat(selectedOption.getAttribute('data-dibayar'));
+        const cicilan = parseInt(selectedOption.getAttribute('data-cicilan'));
+        
         document.getElementById('infoPiutang').style.display = 'block';
-        document.getElementById('sisaPiutangDisplay').textContent = 'Rp ' + parseFloat(sisa).toLocaleString('id-ID');
+        document.getElementById('totalPiutangDisplay').textContent = 'Rp ' + formatRupiah(total);
+        document.getElementById('dibayarDisplay').textContent = 'Rp ' + formatRupiah(dibayar);
+        document.getElementById('sisaPiutangDisplay').textContent = 'Rp ' + formatRupiah(sisa);
+        document.getElementById('cicilanKeDisplay').textContent = (cicilan + 1);
+        
         document.getElementById('jumlahBayar').max = sisa;
     } else {
         document.getElementById('infoPiutang').style.display = 'none';
     }
+});
+
+// Format input jumlah bayar
+const inputJumlah = document.getElementById('jumlahBayar');
+inputJumlah.addEventListener('input', function(e) {
+    let value = this.value.replace(/\./g, '').replace(/[^0-9]/g, '');
+    this.value = formatRupiah(value);
+});
+
+// Bersihkan titik sebelum submit
+document.getElementById('formBayar').addEventListener('submit', function() {
+    inputJumlah.value = bersihkan(inputJumlah.value);
 });
 </script>
 
