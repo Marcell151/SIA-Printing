@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 13 Nov 2025 pada 07.33
+-- Waktu pembuatan: 13 Nov 2025 pada 07.45
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -151,7 +151,8 @@ INSERT INTO `jurnal_umum` (`id_jurnal`, `tanggal`, `deskripsi`, `id_akun_debit`,
 (61, '2025-11-12', 'Pendapatan Kredit - Cetak Banner - INV-2025110003', 2, 10, 200000.00, 'INV-2025110003', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-12 07:15:53'),
 (62, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110003 (Cicilan ke-1)', 1, 2, 100000.00, 'INV-2025110003', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 07:33:28'),
 (63, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110003 (Cicilan ke-2)', 1, 2, 100000.00, 'INV-2025110003', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 07:47:03'),
-(64, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110002 (Cicilan ke-1)', 1, 2, 200000.00, 'INV-2025110002', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 11:21:14');
+(64, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110002 (Cicilan ke-1)', 1, 2, 200000.00, 'INV-2025110002', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 11:21:14'),
+(65, '2025-11-13', 'Pendapatan Lain-Lain - Sewa Peralatan', 1, 13, 2000000.00, 'PL-3', 'Pendapatan Lainnya', 0, NULL, NULL, NULL, '2025-11-13 06:41:31');
 
 -- --------------------------------------------------------
 
@@ -188,7 +189,7 @@ CREATE TABLE `master_akun` (
 --
 
 INSERT INTO `master_akun` (`id_akun`, `kode_akun`, `nama_akun`, `tipe_akun`, `saldo`, `created_at`) VALUES
-(1, '1-101', 'Kas', '1-Aktiva', 52150000.00, '2025-10-30 05:51:07'),
+(1, '1-101', 'Kas', '1-Aktiva', 54150000.00, '2025-10-30 05:51:07'),
 (2, '1-102', 'Piutang Usaha', '1-Aktiva', 7000000.00, '2025-10-30 05:51:07'),
 (3, '1-103', 'Perlengkapan', '1-Aktiva', 17000000.00, '2025-10-30 05:51:07'),
 (4, '1-201', 'Peralatan', '1-Aktiva', 25000000.00, '2025-10-30 05:51:07'),
@@ -200,7 +201,7 @@ INSERT INTO `master_akun` (`id_akun`, `kode_akun`, `nama_akun`, `tipe_akun`, `sa
 (10, '4-101', 'Pendapatan Jasa Printing', '4-Pendapatan', 16300000.00, '2025-10-30 05:51:07'),
 (11, '4-102', 'Pendapatan Jasa Fotocopy', '4-Pendapatan', 1350000.00, '2025-10-30 05:51:07'),
 (12, '4-103', 'Pendapatan Jasa Jilid', '4-Pendapatan', 0.00, '2025-10-30 05:51:07'),
-(13, '4-104', 'Pendapatan Lain-Lain', '4-Pendapatan', 1500000.00, '2025-10-30 05:51:07'),
+(13, '4-104', 'Pendapatan Lain-Lain', '4-Pendapatan', 3500000.00, '2025-10-30 05:51:07'),
 (14, '5-101', 'Beban Gaji', '5-Beban', 5000000.00, '2025-10-30 05:51:07'),
 (15, '5-102', 'Beban Listrik', '5-Beban', 1500000.00, '2025-10-30 05:51:07'),
 (16, '5-103', 'Beban Sewa', '5-Beban', 6000000.00, '2025-10-30 05:51:07'),
@@ -452,7 +453,8 @@ CREATE TABLE `pendapatan_lainnya` (
 --
 
 INSERT INTO `pendapatan_lainnya` (`id_pendapatan`, `tanggal`, `sumber_pendapatan`, `jumlah`, `keterangan`, `created_by`, `created_at`) VALUES
-(2, '2025-10-22', 'Sewa Komputer & Printer untuk Event', 1500000.00, 'Sewa 5 unit komputer + 2 printer untuk acara kampus 2 hari', 1, '2025-11-01 02:49:45');
+(2, '2025-10-22', 'Sewa Komputer & Printer untuk Event', 1500000.00, 'Sewa 5 unit komputer + 2 printer untuk acara kampus 2 hari', 1, '2025-11-01 02:49:45'),
+(3, '2025-11-13', 'Sewa Peralatan', 2000000.00, 'Sewa Alat Print', 1, '2025-11-13 06:41:31');
 
 -- --------------------------------------------------------
 
@@ -706,7 +708,7 @@ ALTER TABLE `jurnal_penyesuaian`
 -- AUTO_INCREMENT untuk tabel `jurnal_umum`
 --
 ALTER TABLE `jurnal_umum`
-  MODIFY `id_jurnal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
+  MODIFY `id_jurnal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
 
 --
 -- AUTO_INCREMENT untuk tabel `laba_rugi`
@@ -760,7 +762,7 @@ ALTER TABLE `pembayaran_piutang`
 -- AUTO_INCREMENT untuk tabel `pendapatan_lainnya`
 --
 ALTER TABLE `pendapatan_lainnya`
-  MODIFY `id_pendapatan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id_pendapatan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT untuk tabel `piutang`
