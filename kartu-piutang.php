@@ -410,17 +410,6 @@ include 'includes/header.php';
 
 <?php else: ?>
 
-<div class="alert alert-info text-center py-5">
-    <i class="bi bi-info-circle display-4 d-block mb-3"></i>
-    <h5>Cara Menggunakan Kartu Piutang</h5>
-    <ol class="text-start" style="max-width: 600px; margin: 20px auto;">
-        <li class="mb-2"><strong>Pilih Pelanggan</strong> dari dropdown di atas</li>
-        <li class="mb-2"><strong>Pilih Invoice/Piutang</strong> yang ingin ditampilkan kartunya</li>
-        <li class="mb-2">Kartu piutang akan menampilkan <strong>mutasi per invoice</strong></li>
-        <li class="mb-2">Setiap invoice memiliki kartu piutang tersendiri</li>
-    </ol>
-</div>
-
 <?php endif; ?>
 
 <script>
