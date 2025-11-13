@@ -159,6 +159,7 @@ include 'includes/header.php';
                     <option value="Pendapatan Tunai" <?php echo ($tipe == 'Pendapatan Tunai') ? 'selected' : ''; ?>>Pendapatan Tunai</option>
                     <option value="Pendapatan Kredit" <?php echo ($tipe == 'Pendapatan Kredit') ? 'selected' : ''; ?>>Pendapatan Kredit</option>
                     <option value="Penerimaan Piutang" <?php echo ($tipe == 'Penerimaan Piutang') ? 'selected' : ''; ?>>Penerimaan Piutang</option>
+                    <option value="Pendapatan Lainnya" <?php echo ($tipe == 'Pendapatan Lainnya') ? 'selected' : ''; ?>>Pendapatan Lainnya</option>
                     <option value="Modal Awal" <?php echo ($tipe == 'Modal Awal') ? 'selected' : ''; ?>>Modal Awal</option>
                     <option value="Beban" <?php echo ($tipe == 'Beban') ? 'selected' : ''; ?>>Beban</option>
                     <option value="Jurnal Penyesuaian" <?php echo ($tipe == 'Jurnal Penyesuaian') ? 'selected' : ''; ?>>Jurnal Penyesuaian</option>
