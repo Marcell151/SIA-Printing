@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 11 Nov 2025 pada 15.57
+-- Waktu pembuatan: 13 Nov 2025 pada 07.33
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.2.12
 
@@ -20,6 +20,51 @@ SET time_zone = "+00:00";
 --
 -- Database: `sia_printing`
 --
+
+DELIMITER $$
+--
+-- Prosedur
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_catat_pembayaran_piutang` (IN `p_tanggal` DATE, IN `p_id_piutang` INT, IN `p_jumlah_bayar` DECIMAL(15,2), IN `p_is_dp` TINYINT(1), IN `p_metode` VARCHAR(50), IN `p_keterangan` TEXT, IN `p_created_by` INT)   BEGIN
+    DECLARE v_sisa DECIMAL(15,2);
+    DECLARE v_cicilan_ke INT;
+    
+    -- Cek sisa piutang
+    SELECT sisa INTO v_sisa FROM piutang WHERE id_piutang = p_id_piutang;
+    
+    IF p_jumlah_bayar > v_sisa THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Jumlah bayar melebihi sisa piutang';
+    END IF;
+    
+    -- Tentukan cicilan ke berapa
+    IF p_is_dp = 1 THEN
+        SET v_cicilan_ke = 0;
+    ELSE
+        SELECT COALESCE(MAX(cicilan_ke), 0) + 1 INTO v_cicilan_ke 
+        FROM pembayaran_piutang 
+        WHERE id_piutang = p_id_piutang AND is_dp = 0;
+    END IF;
+    
+    -- Insert pembayaran
+    INSERT INTO pembayaran_piutang (
+        tanggal, id_piutang, jumlah_bayar, is_dp, cicilan_ke, 
+        metode_pembayaran, keterangan, created_by
+    ) VALUES (
+        p_tanggal, p_id_piutang, p_jumlah_bayar, p_is_dp, v_cicilan_ke,
+        p_metode, p_keterangan, p_created_by
+    );
+    
+    -- Update piutang
+    UPDATE piutang 
+    SET 
+        dibayar = dibayar + p_jumlah_bayar,
+        sisa = sisa - p_jumlah_bayar,
+        status = IF(sisa - p_jumlah_bayar <= 0, 'Lunas', 'Belum Lunas')
+    WHERE id_piutang = p_id_piutang;
+    
+END$$
+
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -100,7 +145,13 @@ INSERT INTO `jurnal_umum` (`id_jurnal`, `tanggal`, `deskripsi`, `id_akun_debit`,
 (55, '2025-11-01', 'Pendapatan Tunai - Cetak A4 Warna', 1, 10, 100000.00, 'PT-9', 'Pendapatan Tunai', 0, NULL, NULL, NULL, '2025-11-01 07:25:20'),
 (56, '2025-11-07', 'Pendapatan Kredit - Banner 1x2 - INV-2025110001', 2, 11, 1000000.00, 'INV-2025110001', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-07 12:14:20'),
 (57, '2025-11-07', 'DP Piutang - INV-2025110001', 1, 2, 500000.00, 'INV-2025110001', 'DP Piutang', 0, NULL, NULL, NULL, '2025-11-07 12:14:20'),
-(58, '2025-11-07', 'Pendapatan Kredit - Cetak Poster - INV-2025110002', 2, 10, 200000.00, 'INV-2025110002', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-07 12:18:26');
+(58, '2025-11-07', 'Pendapatan Kredit - Cetak Poster - INV-2025110002', 2, 10, 200000.00, 'INV-2025110002', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-07 12:18:26'),
+(59, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110001', 1, 2, 50000.00, 'INV-2025110001', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 01:58:58'),
+(60, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110001', 1, 2, 450000.00, 'INV-2025110001', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 02:00:24'),
+(61, '2025-11-12', 'Pendapatan Kredit - Cetak Banner - INV-2025110003', 2, 10, 200000.00, 'INV-2025110003', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-12 07:15:53'),
+(62, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110003 (Cicilan ke-1)', 1, 2, 100000.00, 'INV-2025110003', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 07:33:28'),
+(63, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110003 (Cicilan ke-2)', 1, 2, 100000.00, 'INV-2025110003', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 07:47:03'),
+(64, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110002 (Cicilan ke-1)', 1, 2, 200000.00, 'INV-2025110002', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 11:21:14');
 
 -- --------------------------------------------------------
 
@@ -137,8 +188,8 @@ CREATE TABLE `master_akun` (
 --
 
 INSERT INTO `master_akun` (`id_akun`, `kode_akun`, `nama_akun`, `tipe_akun`, `saldo`, `created_at`) VALUES
-(1, '1-101', 'Kas', '1-Aktiva', 51250000.00, '2025-10-30 05:51:07'),
-(2, '1-102', 'Piutang Usaha', '1-Aktiva', 7700000.00, '2025-10-30 05:51:07'),
+(1, '1-101', 'Kas', '1-Aktiva', 52150000.00, '2025-10-30 05:51:07'),
+(2, '1-102', 'Piutang Usaha', '1-Aktiva', 7000000.00, '2025-10-30 05:51:07'),
 (3, '1-103', 'Perlengkapan', '1-Aktiva', 17000000.00, '2025-10-30 05:51:07'),
 (4, '1-201', 'Peralatan', '1-Aktiva', 25000000.00, '2025-10-30 05:51:07'),
 (5, '1-202', 'Akumulasi Penyusutan Peralatan', '1-Aktiva', 416667.00, '2025-10-30 05:51:07'),
@@ -146,7 +197,7 @@ INSERT INTO `master_akun` (`id_akun`, `kode_akun`, `nama_akun`, `tipe_akun`, `sa
 (7, '2-102', 'Pendapatan Diterima Dimuka', '2-Kewajiban', 0.00, '2025-10-30 05:51:07'),
 (8, '3-101', 'Modal Pemilik', '3-Modal', 100000000.00, '2025-10-30 05:51:07'),
 (9, '3-102', 'Prive', '3-Modal', 2000000.00, '2025-10-30 05:51:07'),
-(10, '4-101', 'Pendapatan Jasa Printing', '4-Pendapatan', 16100000.00, '2025-10-30 05:51:07'),
+(10, '4-101', 'Pendapatan Jasa Printing', '4-Pendapatan', 16300000.00, '2025-10-30 05:51:07'),
 (11, '4-102', 'Pendapatan Jasa Fotocopy', '4-Pendapatan', 1350000.00, '2025-10-30 05:51:07'),
 (12, '4-103', 'Pendapatan Jasa Jilid', '4-Pendapatan', 0.00, '2025-10-30 05:51:07'),
 (13, '4-104', 'Pendapatan Lain-Lain', '4-Pendapatan', 1500000.00, '2025-10-30 05:51:07'),
@@ -341,6 +392,8 @@ CREATE TABLE `pembayaran_piutang` (
   `tanggal` date NOT NULL,
   `id_piutang` int(11) NOT NULL,
   `jumlah_bayar` decimal(15,2) NOT NULL,
+  `is_dp` tinyint(1) DEFAULT 0,
+  `cicilan_ke` int(11) DEFAULT 0,
   `metode_pembayaran` varchar(50) NOT NULL,
   `keterangan` text DEFAULT NULL,
   `created_by` int(11) DEFAULT NULL,
@@ -351,8 +404,32 @@ CREATE TABLE `pembayaran_piutang` (
 -- Dumping data untuk tabel `pembayaran_piutang`
 --
 
-INSERT INTO `pembayaran_piutang` (`id_pembayaran`, `tanggal`, `id_piutang`, `jumlah_bayar`, `metode_pembayaran`, `keterangan`, `created_by`, `created_at`) VALUES
-(5, '2025-10-20', 1, 2000000.00, 'Transfer Bank', 'Pembayaran cicilan ke-2 dari PT. ABC', 1, '2025-11-01 02:49:45');
+INSERT INTO `pembayaran_piutang` (`id_pembayaran`, `tanggal`, `id_piutang`, `jumlah_bayar`, `is_dp`, `cicilan_ke`, `metode_pembayaran`, `keterangan`, `created_by`, `created_at`) VALUES
+(5, '2025-10-20', 1, 2000000.00, 0, 0, 'Transfer Bank', 'Pembayaran cicilan ke-2 dari PT. ABC', 1, '2025-11-01 02:49:45'),
+(6, '2025-11-12', 8, 50000.00, 0, 0, 'Tunai', 'Lunas', 1, '2025-11-12 01:58:58'),
+(7, '2025-11-12', 8, 450000.00, 0, 0, 'Tunai', 'Lunas', 1, '2025-11-12 02:00:24'),
+(8, '2025-10-12', 6, 1000000.00, 1, 0, 'Tunai', 'DP / Pembayaran Awal (Migrasi Data)', 1, '2025-11-01 02:49:45'),
+(9, '2025-10-18', 7, 2500000.00, 1, 0, 'Tunai', 'DP / Pembayaran Awal (Migrasi Data)', 1, '2025-11-01 02:49:45'),
+(10, '2025-11-07', 8, 1000000.00, 1, 0, 'Tunai', 'DP / Pembayaran Awal (Migrasi Data)', 1, '2025-11-07 12:14:20'),
+(11, '2025-11-12', 10, 100000.00, 0, 1, 'Tunai', 'Cicil 1', 1, '2025-11-12 07:33:28'),
+(12, '2025-11-12', 10, 100000.00, 0, 2, 'Transfer Bank', 'Lunas', 1, '2025-11-12 07:47:03'),
+(13, '2025-11-12', 9, 200000.00, 0, 1, 'Tunai', 'Lunas', 1, '2025-11-12 11:21:14');
+
+--
+-- Trigger `pembayaran_piutang`
+--
+DELIMITER $$
+CREATE TRIGGER `trg_before_insert_pembayaran_piutang` BEFORE INSERT ON `pembayaran_piutang` FOR EACH ROW BEGIN
+    DECLARE v_sisa DECIMAL(15,2);
+    
+    SELECT sisa INTO v_sisa FROM piutang WHERE id_piutang = NEW.id_piutang;
+    
+    IF NEW.jumlah_bayar > v_sisa THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Jumlah bayar melebihi sisa piutang';
+    END IF;
+END
+$$
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -394,6 +471,7 @@ CREATE TABLE `piutang` (
   `dibayar` decimal(15,2) DEFAULT 0.00,
   `sisa` decimal(15,2) NOT NULL,
   `jatuh_tempo` date NOT NULL,
+  `syarat_kredit` varchar(100) DEFAULT 'Net 30',
   `status` enum('Belum Lunas','Lunas') DEFAULT 'Belum Lunas',
   `created_by` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -403,11 +481,12 @@ CREATE TABLE `piutang` (
 -- Dumping data untuk tabel `piutang`
 --
 
-INSERT INTO `piutang` (`id_piutang`, `no_piutang`, `tanggal`, `id_pelanggan`, `jenis_jasa`, `kategori`, `total`, `dibayar`, `sisa`, `jatuh_tempo`, `status`, `created_by`, `created_at`) VALUES
-(6, 'INV-202510001', '2025-10-12', 1, 'Cetak Banner 2x3 meter (5 buah) + Desain Custom Logo', 'Printing', 5000000.00, 1000000.00, 4000000.00, '2025-11-12', 'Belum Lunas', 1, '2025-11-01 02:49:45'),
-(7, 'INV-202510002', '2025-10-18', 2, 'Cetak Undangan Pernikahan 500 pcs + Amplop + Box Custom', 'Printing', 7500000.00, 2500000.00, 5000000.00, '2025-11-18', 'Belum Lunas', 1, '2025-11-01 02:49:45'),
-(8, 'INV-2025110001', '2025-11-07', 5, 'Banner 1x2', 'Fotocopy', 1000000.00, 500000.00, 500000.00, '2025-11-08', 'Belum Lunas', 1, '2025-11-07 12:14:20'),
-(9, 'INV-2025110002', '2025-11-07', 2, 'Cetak Poster', 'Printing', 200000.00, 0.00, 200000.00, '2025-11-10', 'Belum Lunas', 1, '2025-11-07 12:18:26');
+INSERT INTO `piutang` (`id_piutang`, `no_piutang`, `tanggal`, `id_pelanggan`, `jenis_jasa`, `kategori`, `total`, `dibayar`, `sisa`, `jatuh_tempo`, `syarat_kredit`, `status`, `created_by`, `created_at`) VALUES
+(6, 'INV-202510001', '2025-10-12', 1, 'Cetak Banner 2x3 meter (5 buah) + Desain Custom Logo', 'Printing', 5000000.00, 1000000.00, 4000000.00, '2025-11-12', 'Net 30', 'Belum Lunas', 1, '2025-11-01 02:49:45'),
+(7, 'INV-202510002', '2025-10-18', 2, 'Cetak Undangan Pernikahan 500 pcs + Amplop + Box Custom', 'Printing', 7500000.00, 2500000.00, 5000000.00, '2025-11-18', 'Net 30', 'Belum Lunas', 1, '2025-11-01 02:49:45'),
+(8, 'INV-2025110001', '2025-11-07', 5, 'Banner 1x2', 'Fotocopy', 1000000.00, 1000000.00, 0.00, '2025-11-08', 'Net 30', 'Lunas', 1, '2025-11-07 12:14:20'),
+(9, 'INV-2025110002', '2025-11-07', 2, 'Cetak Poster', 'Printing', 200000.00, 200000.00, 0.00, '2025-11-10', 'Net 30', 'Lunas', 1, '2025-11-07 12:18:26'),
+(10, 'INV-2025110003', '2025-11-12', 6, 'Cetak Banner', 'Printing', 200000.00, 200000.00, 0.00, '2025-11-26', 'Net 30', 'Lunas', 1, '2025-11-12 07:15:53');
 
 -- --------------------------------------------------------
 
@@ -461,6 +540,44 @@ INSERT INTO `users` (`id_user`, `username`, `password`, `nama`, `role`, `created
 (1, 'kasir', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Kasir', 'kasir', '2025-10-30 05:51:07'),
 (2, 'akuntan', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Akuntan', 'akuntan', '2025-10-30 05:51:07'),
 (3, 'owner', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Owner', 'owner', '2025-10-30 05:51:07');
+
+-- --------------------------------------------------------
+
+--
+-- Stand-in struktur untuk tampilan `view_kartu_piutang`
+-- (Lihat di bawah untuk tampilan aktual)
+--
+CREATE TABLE `view_kartu_piutang` (
+`id_piutang` int(11)
+,`no_piutang` varchar(50)
+,`tanggal` date
+,`id_pelanggan` int(11)
+,`nama_pelanggan` varchar(100)
+,`telepon` varchar(20)
+,`alamat` text
+,`jenis_jasa` varchar(100)
+,`kategori` varchar(50)
+,`total` decimal(15,2)
+,`dibayar` decimal(15,2)
+,`sisa` decimal(15,2)
+,`jatuh_tempo` date
+,`syarat_kredit` varchar(100)
+,`status` enum('Belum Lunas','Lunas')
+,`total_dp` decimal(37,2)
+,`total_cicilan` decimal(37,2)
+,`jumlah_cicilan` bigint(21)
+,`umur_piutang` int(7)
+,`hari_lewat` int(7)
+);
+
+-- --------------------------------------------------------
+
+--
+-- Struktur untuk view `view_kartu_piutang`
+--
+DROP TABLE IF EXISTS `view_kartu_piutang`;
+
+CREATE ALGORITHM=UNDEFINED DEFINER=`root`@`localhost` SQL SECURITY DEFINER VIEW `view_kartu_piutang`  AS SELECT `p`.`id_piutang` AS `id_piutang`, `p`.`no_piutang` AS `no_piutang`, `p`.`tanggal` AS `tanggal`, `p`.`id_pelanggan` AS `id_pelanggan`, `mp`.`nama_pelanggan` AS `nama_pelanggan`, `mp`.`telepon` AS `telepon`, `mp`.`alamat` AS `alamat`, `p`.`jenis_jasa` AS `jenis_jasa`, `p`.`kategori` AS `kategori`, `p`.`total` AS `total`, `p`.`dibayar` AS `dibayar`, `p`.`sisa` AS `sisa`, `p`.`jatuh_tempo` AS `jatuh_tempo`, `p`.`syarat_kredit` AS `syarat_kredit`, `p`.`status` AS `status`, coalesce((select sum(`pembayaran_piutang`.`jumlah_bayar`) from `pembayaran_piutang` where `pembayaran_piutang`.`id_piutang` = `p`.`id_piutang` and `pembayaran_piutang`.`is_dp` = 1),0) AS `total_dp`, coalesce((select sum(`pembayaran_piutang`.`jumlah_bayar`) from `pembayaran_piutang` where `pembayaran_piutang`.`id_piutang` = `p`.`id_piutang` and `pembayaran_piutang`.`is_dp` = 0),0) AS `total_cicilan`, coalesce((select count(0) from `pembayaran_piutang` where `pembayaran_piutang`.`id_piutang` = `p`.`id_piutang` and `pembayaran_piutang`.`is_dp` = 0),0) AS `jumlah_cicilan`, to_days(curdate()) - to_days(`p`.`tanggal`) AS `umur_piutang`, to_days(curdate()) - to_days(`p`.`jatuh_tempo`) AS `hari_lewat` FROM (`piutang` `p` left join `master_pelanggan` `mp` on(`p`.`id_pelanggan` = `mp`.`id_pelanggan`)) ;
 
 --
 -- Indexes for dumped tables
@@ -540,7 +657,8 @@ ALTER TABLE `neraca_saldo_penyesuaian`
 ALTER TABLE `pembayaran_piutang`
   ADD PRIMARY KEY (`id_pembayaran`),
   ADD KEY `id_piutang` (`id_piutang`),
-  ADD KEY `created_by` (`created_by`);
+  ADD KEY `created_by` (`created_by`),
+  ADD KEY `idx_pembayaran_piutang_lookup` (`id_piutang`,`is_dp`,`tanggal`);
 
 --
 -- Indeks untuk tabel `pendapatan_lainnya`
@@ -556,7 +674,8 @@ ALTER TABLE `piutang`
   ADD PRIMARY KEY (`id_piutang`),
   ADD UNIQUE KEY `no_piutang` (`no_piutang`),
   ADD KEY `id_pelanggan` (`id_pelanggan`),
-  ADD KEY `created_by` (`created_by`);
+  ADD KEY `created_by` (`created_by`),
+  ADD KEY `idx_piutang_pelanggan_status` (`id_pelanggan`,`status`,`tanggal`);
 
 --
 -- Indeks untuk tabel `transaksi_pendapatan`
@@ -587,7 +706,7 @@ ALTER TABLE `jurnal_penyesuaian`
 -- AUTO_INCREMENT untuk tabel `jurnal_umum`
 --
 ALTER TABLE `jurnal_umum`
-  MODIFY `id_jurnal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
+  MODIFY `id_jurnal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=65;
 
 --
 -- AUTO_INCREMENT untuk tabel `laba_rugi`
@@ -635,7 +754,7 @@ ALTER TABLE `neraca_saldo_penyesuaian`
 -- AUTO_INCREMENT untuk tabel `pembayaran_piutang`
 --
 ALTER TABLE `pembayaran_piutang`
-  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT untuk tabel `pendapatan_lainnya`
@@ -647,7 +766,7 @@ ALTER TABLE `pendapatan_lainnya`
 -- AUTO_INCREMENT untuk tabel `piutang`
 --
 ALTER TABLE `piutang`
-  MODIFY `id_piutang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_piutang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT untuk tabel `transaksi_pendapatan`
