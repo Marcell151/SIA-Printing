@@ -91,8 +91,6 @@ $piutang_list = $conn->query("SELECT p.*, mp.nama_pelanggan,
                                LEFT JOIN master_pelanggan mp ON p.id_pelanggan = mp.id_pelanggan
                                WHERE p.status = 'Belum Lunas'
                                ORDER BY p.tanggal ASC");
-
-// Get recent pembayaran
 $recent = $conn->query("SELECT pp.*, p.no_piutang, mp.nama_pelanggan,
                         CASE WHEN pp.is_dp = 1 THEN 'DP' ELSE CONCAT('Cicilan ke-', pp.cicilan_ke) END as jenis_bayar
                         FROM pembayaran_piutang pp
@@ -133,7 +131,10 @@ include 'includes/header.php';
                         <label class="form-label">Pilih Piutang <span class="text-danger">*</span></label>
                         <select name="id_piutang" id="selectPiutang" class="form-select" required>
                             <option value="">-- Pilih Piutang --</option>
-                            <?php while ($p = $piutang_list->fetch_assoc()): ?>
+                            <?php 
+                            $piutang_list->data_seek(0);
+                            while ($p = $piutang_list->fetch_assoc()): 
+                            ?>
                                 <option value="<?php echo $p['id_piutang']; ?>" 
                                         data-sisa="<?php echo $p['sisa']; ?>"
                                         data-total="<?php echo $p['total']; ?>"
@@ -148,27 +149,28 @@ include 'includes/header.php';
                     </div>
 
                     <div class="mb-3" id="infoPiutang" style="display: none;">
-                        <!-- <div class="label">
+                        <!-- <div class="alert alert-info py-2">
+                            <div class="row">
                                 <div class="col-6">
-                                    <medium class="text-muted d-block">Total Piutang</medium>
+                                    <small class="text-muted d-block">Total Piutang</small>
                                     <strong id="totalPiutangDisplay">Rp 0</strong>
                                 </div>
-                            <hr class="my-2">
                                 <div class="col-6">
-                                    <medium class="text-muted d-block">Sudah Dibayar</medium>
+                                    <small class="text-muted d-block">Sudah Dibayar</small>
                                     <strong id="dibayarDisplay">Rp 0</strong>
                                 </div>
+                            </div>
                             <hr class="my-2">
+                            <div class="row">
                                 <div class="col-6">
-                                    <medium class="text-muted d-block">Cicilan ke</medium>
+                                    <small class="text-muted d-block">Cicilan ke</small>
                                     <strong id="cicilanKeDisplay">-</strong>
                                 </div>
-                            <hr class="my-2">
                                 <div class="col-6">
-                                    <medium class="text-muted d-block">Sisa Piutang</medium>
+                                    <small class="text-muted d-block">Sisa Piutang</small>
                                     <strong class="text-danger" id="sisaPiutangDisplay">Rp 0</strong>
                                 </div>
-                            <hr class="my-2">
+                            </div>
                         </div> -->
                     </div>
 
@@ -310,7 +312,7 @@ function formatRupiah(angka) {
 }
 
 function bersihkan(angka) {
-    return parseInt(angka.replace(/\./g, '')) || 0;
+    return parseFloat(angka.toString().replace(/\./g, '')) || 0;
 }
 
 // Show info piutang when selected
@@ -323,13 +325,15 @@ document.getElementById('selectPiutang').addEventListener('change', function() {
         const dibayar = parseFloat(selectedOption.getAttribute('data-dibayar'));
         const cicilan = parseInt(selectedOption.getAttribute('data-cicilan'));
         
+        console.log('Data Piutang:', { sisa, total, dibayar, cicilan }); // Debug
+        
         document.getElementById('infoPiutang').style.display = 'block';
-        document.getElementById('totalPiutangDisplay').textContent = 'Rp ' + formatRupiah(total);
-        document.getElementById('dibayarDisplay').textContent = 'Rp ' + formatRupiah(dibayar);
-        document.getElementById('sisaPiutangDisplay').textContent = 'Rp ' + formatRupiah(sisa);
+        document.getElementById('totalPiutangDisplay').textContent = 'Rp ' + formatRupiah(Math.round(total));
+        document.getElementById('dibayarDisplay').textContent = 'Rp ' + formatRupiah(Math.round(dibayar));
+        document.getElementById('sisaPiutangDisplay').textContent = 'Rp ' + formatRupiah(Math.round(sisa));
         document.getElementById('cicilanKeDisplay').textContent = (cicilan + 1);
         
-        document.getElementById('jumlahBayar').max = sisa;
+        document.getElementById('jumlahBayar').setAttribute('data-max', sisa);
     } else {
         document.getElementById('infoPiutang').style.display = 'none';
     }

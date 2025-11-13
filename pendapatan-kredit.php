@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total = floatval(str_replace('.', '', $_POST['total']));
     $dibayar = floatval(str_replace('.', '', $_POST['dibayar']));
     $jatuh_tempo = clean_input($_POST['jatuh_tempo']);
+    $syarat_kredit = clean_input($_POST['syarat_kredit']);
     $keterangan = clean_input($_POST['keterangan']);
     $created_by = $_SESSION['user_id'];
     
@@ -62,11 +63,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
     
     try {
-        // 1. Insert piutang (TANPA field dibayar, karena akan ditrack di pembayaran_piutang)
+        // 1. Insert piutang (DENGAN field syarat_kredit)
         $stmt = $conn->prepare("INSERT INTO piutang 
-        (no_piutang, tanggal, id_pelanggan, jenis_jasa, kategori, total, dibayar, sisa, jatuh_tempo, status, created_by) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        $stmt->bind_param("ssissdddssi", 
+        (no_piutang, tanggal, id_pelanggan, jenis_jasa, kategori, total, dibayar, sisa, jatuh_tempo, syarat_kredit, status, created_by) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt->bind_param("ssissdddsssi", 
             $no_piutang, 
             $tanggal, 
             $id_pelanggan, 
@@ -75,7 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $total, 
             $dibayar,
             $sisa, 
-            $jatuh_tempo, 
+            $jatuh_tempo,
+            $syarat_kredit,
             $status, 
             $created_by
         );
@@ -243,6 +245,20 @@ include 'includes/header.php';
                     </div>
 
                     <div class="mb-3">
+                        <label class="form-label">Syarat Kredit <span class="text-danger">*</span></label>
+                        <select name="syarat_kredit" id="syarat_kredit" class="form-select" required>
+                            <option value="Net 7">Net 7 (Jatuh tempo 7 hari)</option>
+                            <option value="Net 14">Net 14 (Jatuh tempo 14 hari)</option>
+                            <option value="Net 30" selected>Net 30 (Jatuh tempo 30 hari)</option>
+                            <option value="Net 60">Net 60 (Jatuh tempo 60 hari)</option>
+                            <option value="Net 90">Net 90 (Jatuh tempo 90 hari)</option>
+                            <option value="COD">COD (Cash on Delivery)</option>
+                            <option value="CBD">CBD (Cash Before Delivery)</option>
+                        </select>
+                        <small class="text-muted">Syarat pembayaran kredit yang disepakati</small>
+                    </div>
+
+                    <div class="mb-3">
                         <label class="form-label">Keterangan</label>
                         <textarea name="keterangan" class="form-control" rows="2" 
                                   placeholder="Keterangan tambahan (opsional)"></textarea>
@@ -329,6 +345,14 @@ function setJatuhTempo(hari) {
     const day = String(date.getDate()).padStart(2, '0');
     
     document.getElementById('jatuh_tempo').value = `${year}-${month}-${day}`;
+    
+    // Auto set syarat kredit
+    const syaratSelect = document.getElementById('syarat_kredit');
+    if (hari === 7) syaratSelect.value = 'Net 7';
+    else if (hari === 14) syaratSelect.value = 'Net 14';
+    else if (hari === 30) syaratSelect.value = 'Net 30';
+    else if (hari === 60) syaratSelect.value = 'Net 60';
+    else if (hari === 90) syaratSelect.value = 'Net 90';
 }
 
 document.querySelector('input[name="tanggal"]').addEventListener('change', function() {
