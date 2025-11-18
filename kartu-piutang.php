@@ -59,16 +59,16 @@ if ($id_piutang > 0) {
         // Saldo awal = 0 (karena ini transaksi piutang baru)
         $saldo_berjalan = 0;
         
-        // Baris 1: Transaksi Piutang (DEBET) - Piutang bertambah
+        // Baris 1: Transaksi Piutang (DEBIT) - Piutang bertambah
         $saldo_berjalan += $piutang_info['total'];
         
         $kartu_piutang_data[] = [
             'tanggal' => $piutang_info['tanggal'],
             'keterangan' => 'Piutang - ' . $piutang_info['jenis_jasa'],
             'folio' => $piutang_info['no_piutang'],
-            'mutasi_debet' => $piutang_info['total'],
+            'mutasi_debit' => $piutang_info['total'],
             'mutasi_kredit' => 0,
-            'saldo_debet' => $saldo_berjalan,
+            'saldo_debit' => $saldo_berjalan,
             'saldo_kredit' => 0,
             'row_type' => 'piutang'
         ];
@@ -97,9 +97,9 @@ if ($id_piutang > 0) {
                 'tanggal' => $bayar['tanggal'],
                 'keterangan' => $label_bayar,
                 'folio' => $piutang_info['no_piutang'],
-                'mutasi_debet' => 0,
+                'mutasi_debit' => 0,
                 'mutasi_kredit' => $mutasi_kredit,
-                'saldo_debet' => $saldo_berjalan > 0 ? $saldo_berjalan : 0,
+                'saldo_debit' => $saldo_berjalan > 0 ? $saldo_berjalan : 0,
                 'saldo_kredit' => $saldo_berjalan < 0 ? abs($saldo_berjalan) : 0,
                 'row_type' => $bayar['is_dp'] == 1 ? 'dp' : 'pembayaran'
             ];
@@ -266,9 +266,9 @@ include 'includes/header.php';
                         <th colspan="2" class="border-bottom">SALDO</th>
                     </tr>
                     <tr class="text-center">
-                        <th width="11%">DEBET</th>
+                        <th width="11%">DEBIT</th>
                         <th width="11%">KREDIT</th>
-                        <th width="11%">DEBET</th>
+                        <th width="11%">DEBIT</th>
                         <th width="12%">KREDIT</th>
                     </tr>
                 </thead>
@@ -290,13 +290,13 @@ include 'includes/header.php';
                                 <td><?php echo $row['keterangan']; ?></td>
                                 <td class="text-center"><small><?php echo $row['folio']; ?></small></td>
                                 <td class="text-end">
-                                    <?php echo ($row['mutasi_debet'] > 0) ? format_rupiah($row['mutasi_debet']) : '--'; ?>
+                                    <?php echo ($row['mutasi_debit'] > 0) ? format_rupiah($row['mutasi_debit']) : '--'; ?>
                                 </td>
                                 <td class="text-end">
                                     <?php echo ($row['mutasi_kredit'] > 0) ? format_rupiah($row['mutasi_kredit']) : '--'; ?>
                                 </td>
                                 <td class="text-end fw-semibold">
-                                    <?php echo ($row['saldo_debet'] > 0) ? format_rupiah($row['saldo_debet']) : '--'; ?>
+                                    <?php echo ($row['saldo_debit'] > 0) ? format_rupiah($row['saldo_debit']) : '--'; ?>
                                 </td>
                                 <td class="text-end">
                                     <?php echo ($row['saldo_kredit'] > 0) ? format_rupiah($row['saldo_kredit']) : '--'; ?>
@@ -310,7 +310,7 @@ include 'includes/header.php';
                             <td class="text-end">
                                 <?php 
                                 $last_row = end($kartu_piutang_data);
-                                $saldo_akhir = $last_row['saldo_debet'] > 0 ? $last_row['saldo_debet'] : 0;
+                                $saldo_akhir = $last_row['saldo_debit'] > 0 ? $last_row['saldo_debit'] : 0;
                                 echo format_rupiah($saldo_akhir); 
                                 ?>
                             </td>
