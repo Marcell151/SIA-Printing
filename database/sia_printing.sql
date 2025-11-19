@@ -3,9 +3,9 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 13 Nov 2025 pada 07.45
+-- Waktu pembuatan: 19 Nov 2025 pada 08.53
 -- Versi server: 10.4.32-MariaDB
--- Versi PHP: 8.2.12
+-- Versi PHP: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -123,6 +123,7 @@ CREATE TABLE `jurnal_umum` (
 --
 
 INSERT INTO `jurnal_umum` (`id_jurnal`, `tanggal`, `deskripsi`, `id_akun_debit`, `id_akun_kredit`, `nominal`, `referensi`, `tipe_transaksi`, `is_void`, `voided_by`, `voided_at`, `void_reason`, `created_at`) VALUES
+(1, '2025-11-19', 'Pendapatan Kredit - Cetak Poster - INV-2025110004', 2, 10, 150000.00, 'INV-2025110004', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-19 03:35:52'),
 (36, '2025-10-01', 'Setoran Modal Awal Pemilik untuk Memulai Usaha Percetakan', 1, 8, 100000000.00, 'MODAL-001', 'Modal Awal', 0, NULL, NULL, NULL, '2025-11-01 02:49:45'),
 (37, '2025-10-02', 'Pembelian Perlengkapan: Kertas A4, A3, Tinta Printer, Cartridge, dll untuk persediaan operasional', 3, 1, 20000000.00, 'BUY-SUPPLY-001', 'Pembelian Aset', 0, NULL, NULL, NULL, '2025-11-01 02:49:45'),
 (38, '2025-10-03', 'Pembelian Peralatan: 2 unit Printer Digital, 3 unit Komputer, 1 unit Mesin Cutting, Meja Kerja', 4, 1, 25000000.00, 'BUY-EQUIP-001', 'Pembelian Aset', 0, NULL, NULL, NULL, '2025-11-01 02:49:45'),
@@ -152,7 +153,16 @@ INSERT INTO `jurnal_umum` (`id_jurnal`, `tanggal`, `deskripsi`, `id_akun_debit`,
 (62, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110003 (Cicilan ke-1)', 1, 2, 100000.00, 'INV-2025110003', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 07:33:28'),
 (63, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110003 (Cicilan ke-2)', 1, 2, 100000.00, 'INV-2025110003', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 07:47:03'),
 (64, '2025-11-12', 'Penerimaan Pembayaran Piutang - INV-2025110002 (Cicilan ke-1)', 1, 2, 200000.00, 'INV-2025110002', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-12 11:21:14'),
-(65, '2025-11-13', 'Pendapatan Lain-Lain - Sewa Peralatan', 1, 13, 2000000.00, 'PL-3', 'Pendapatan Lainnya', 0, NULL, NULL, NULL, '2025-11-13 06:41:31');
+(65, '2025-11-13', 'Pendapatan Lain-Lain - Sewa Peralatan', 1, 13, 2000000.00, 'PL-3', 'Pendapatan Lainnya', 0, NULL, NULL, NULL, '2025-11-13 06:41:31'),
+(66, '2025-11-19', 'Pendapatan Tunai - Desain Grafis', 1, 10, 50000.00, 'PT-11', 'Pendapatan Tunai', 0, NULL, NULL, NULL, '2025-11-19 05:47:55'),
+(67, '2025-11-19', 'Penerimaan Pembayaran Piutang - INV-2025110004 (Cicilan ke-1)', 1, 2, 40000.00, 'INV-2025110004', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-19 05:51:07'),
+(68, '2025-11-19', 'Pendapatan Kredit - Cetak Banner - INV-20251119-065658-BA33', 2, 10, 200000.00, 'INV-20251119-065658-BA33', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-19 05:56:58'),
+(69, '2025-11-19', 'Pendapatan Kredit - Cetak Banner - INV-2025110004-282', 2, 10, 200000.00, 'INV-2025110004-282', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-19 06:03:09'),
+(70, '2025-11-19', 'Penerimaan Pembayaran Piutang - INV-2025110004-282 (Cicilan ke-1)', 1, 2, 100000.00, 'INV-2025110004-282', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-19 06:03:36'),
+(71, '2025-11-19', 'Pendapatan Lain-Lain - Sewa Peralatan', 1, 13, 50000.00, 'PL-4', 'Pendapatan Lainnya', 0, NULL, NULL, NULL, '2025-11-19 06:03:53'),
+(72, '2025-11-19', 'Pendapatan Kredit - Cetak Banner - INV-202511-281', 2, 10, 900000.00, 'INV-202511-281', 'Pendapatan Kredit', 0, NULL, NULL, NULL, '2025-11-19 06:09:48'),
+(73, '2025-11-19', 'Penerimaan Pembayaran Piutang - INV-202511-281 (Cicilan ke-1)', 1, 2, 900000.00, 'INV-202511-281', 'Penerimaan Piutang', 0, NULL, NULL, NULL, '2025-11-19 06:10:15'),
+(74, '2025-11-19', 'Pendapatan Tunai - Fotocopy A4', 1, 12, 150000.00, 'PT-12', 'Pendapatan Tunai', 0, NULL, NULL, NULL, '2025-11-19 06:23:04');
 
 -- --------------------------------------------------------
 
@@ -189,8 +199,8 @@ CREATE TABLE `master_akun` (
 --
 
 INSERT INTO `master_akun` (`id_akun`, `kode_akun`, `nama_akun`, `tipe_akun`, `saldo`, `created_at`) VALUES
-(1, '1-101', 'Kas', '1-Aktiva', 54150000.00, '2025-10-30 05:51:07'),
-(2, '1-102', 'Piutang Usaha', '1-Aktiva', 7000000.00, '2025-10-30 05:51:07'),
+(1, '1-101', 'Kas', '1-Aktiva', 55540000.00, '2025-10-30 05:51:07'),
+(2, '1-102', 'Piutang Usaha', '1-Aktiva', 7610000.00, '2025-10-30 05:51:07'),
 (3, '1-103', 'Perlengkapan', '1-Aktiva', 17000000.00, '2025-10-30 05:51:07'),
 (4, '1-201', 'Peralatan', '1-Aktiva', 25000000.00, '2025-10-30 05:51:07'),
 (5, '1-202', 'Akumulasi Penyusutan Peralatan', '1-Aktiva', 416667.00, '2025-10-30 05:51:07'),
@@ -198,10 +208,10 @@ INSERT INTO `master_akun` (`id_akun`, `kode_akun`, `nama_akun`, `tipe_akun`, `sa
 (7, '2-102', 'Pendapatan Diterima Dimuka', '2-Kewajiban', 0.00, '2025-10-30 05:51:07'),
 (8, '3-101', 'Modal Pemilik', '3-Modal', 100000000.00, '2025-10-30 05:51:07'),
 (9, '3-102', 'Prive', '3-Modal', 2000000.00, '2025-10-30 05:51:07'),
-(10, '4-101', 'Pendapatan Jasa Printing', '4-Pendapatan', 16300000.00, '2025-10-30 05:51:07'),
+(10, '4-101', 'Pendapatan Jasa Printing', '4-Pendapatan', 18100000.00, '2025-10-30 05:51:07'),
 (11, '4-102', 'Pendapatan Jasa Fotocopy', '4-Pendapatan', 1350000.00, '2025-10-30 05:51:07'),
-(12, '4-103', 'Pendapatan Jasa Jilid', '4-Pendapatan', 0.00, '2025-10-30 05:51:07'),
-(13, '4-104', 'Pendapatan Lain-Lain', '4-Pendapatan', 3500000.00, '2025-10-30 05:51:07'),
+(12, '4-103', 'Pendapatan Jasa Jilid', '4-Pendapatan', 150000.00, '2025-10-30 05:51:07'),
+(13, '4-104', 'Pendapatan Lain-Lain', '4-Pendapatan', 3550000.00, '2025-10-30 05:51:07'),
 (14, '5-101', 'Beban Gaji', '5-Beban', 5000000.00, '2025-10-30 05:51:07'),
 (15, '5-102', 'Beban Listrik', '5-Beban', 1500000.00, '2025-10-30 05:51:07'),
 (16, '5-103', 'Beban Sewa', '5-Beban', 6000000.00, '2025-10-30 05:51:07'),
@@ -406,7 +416,7 @@ CREATE TABLE `pembayaran_piutang` (
 --
 
 INSERT INTO `pembayaran_piutang` (`id_pembayaran`, `tanggal`, `id_piutang`, `jumlah_bayar`, `is_dp`, `cicilan_ke`, `metode_pembayaran`, `keterangan`, `created_by`, `created_at`) VALUES
-(5, '2025-10-20', 1, 2000000.00, 0, 0, 'Transfer Bank', 'Pembayaran cicilan ke-2 dari PT. ABC', 1, '2025-11-01 02:49:45'),
+(5, '2025-11-20', 1, 20000.00, 0, 0, 'Transfer Bank', 'Pembayaran cicilan ke-2 dari PT. ABC', 1, '2025-11-01 02:49:45'),
 (6, '2025-11-12', 8, 50000.00, 0, 0, 'Tunai', 'Lunas', 1, '2025-11-12 01:58:58'),
 (7, '2025-11-12', 8, 450000.00, 0, 0, 'Tunai', 'Lunas', 1, '2025-11-12 02:00:24'),
 (8, '2025-10-12', 6, 1000000.00, 1, 0, 'Tunai', 'DP / Pembayaran Awal (Migrasi Data)', 1, '2025-11-01 02:49:45'),
@@ -414,7 +424,10 @@ INSERT INTO `pembayaran_piutang` (`id_pembayaran`, `tanggal`, `id_piutang`, `jum
 (10, '2025-11-07', 8, 1000000.00, 1, 0, 'Tunai', 'DP / Pembayaran Awal (Migrasi Data)', 1, '2025-11-07 12:14:20'),
 (11, '2025-11-12', 10, 100000.00, 0, 1, 'Tunai', 'Cicil 1', 1, '2025-11-12 07:33:28'),
 (12, '2025-11-12', 10, 100000.00, 0, 2, 'Transfer Bank', 'Lunas', 1, '2025-11-12 07:47:03'),
-(13, '2025-11-12', 9, 200000.00, 0, 1, 'Tunai', 'Lunas', 1, '2025-11-12 11:21:14');
+(13, '2025-11-12', 9, 200000.00, 0, 1, 'Tunai', 'Lunas', 1, '2025-11-12 11:21:14'),
+(14, '2025-11-19', 1, 40000.00, 0, 1, 'Tunai', 'cicil 1', 1, '2025-11-19 05:51:07'),
+(15, '2025-11-19', 19, 100000.00, 0, 1, 'Tunai', '', 1, '2025-11-19 06:03:36'),
+(16, '2025-11-19', 20, 900000.00, 0, 1, 'Tunai', 'Lunas', 1, '2025-11-19 06:10:15');
 
 --
 -- Trigger `pembayaran_piutang`
@@ -454,7 +467,8 @@ CREATE TABLE `pendapatan_lainnya` (
 
 INSERT INTO `pendapatan_lainnya` (`id_pendapatan`, `tanggal`, `sumber_pendapatan`, `jumlah`, `keterangan`, `created_by`, `created_at`) VALUES
 (2, '2025-10-22', 'Sewa Komputer & Printer untuk Event', 1500000.00, 'Sewa 5 unit komputer + 2 printer untuk acara kampus 2 hari', 1, '2025-11-01 02:49:45'),
-(3, '2025-11-13', 'Sewa Peralatan', 2000000.00, 'Sewa Alat Print', 1, '2025-11-13 06:41:31');
+(3, '2025-11-13', 'Sewa Peralatan', 2000000.00, 'Sewa Alat Print', 1, '2025-11-13 06:41:31'),
+(4, '2025-11-19', 'Sewa Peralatan', 50000.00, 'Sewa', 1, '2025-11-19 06:03:53');
 
 -- --------------------------------------------------------
 
@@ -484,11 +498,14 @@ CREATE TABLE `piutang` (
 --
 
 INSERT INTO `piutang` (`id_piutang`, `no_piutang`, `tanggal`, `id_pelanggan`, `jenis_jasa`, `kategori`, `total`, `dibayar`, `sisa`, `jatuh_tempo`, `syarat_kredit`, `status`, `created_by`, `created_at`) VALUES
+(1, 'INV-2025110004', '2025-11-19', 6, 'Cetak Banner', 'Printing', 200000.00, 40000.00, 160000.00, '2025-11-26', 'Net 7', 'Belum Lunas', 1, '2025-11-19 03:54:29'),
 (6, 'INV-202510001', '2025-10-12', 1, 'Cetak Banner 2x3 meter (5 buah) + Desain Custom Logo', 'Printing', 5000000.00, 1000000.00, 4000000.00, '2025-11-12', 'Net 30', 'Belum Lunas', 1, '2025-11-01 02:49:45'),
 (7, 'INV-202510002', '2025-10-18', 2, 'Cetak Undangan Pernikahan 500 pcs + Amplop + Box Custom', 'Printing', 7500000.00, 2500000.00, 5000000.00, '2025-11-18', 'Net 30', 'Belum Lunas', 1, '2025-11-01 02:49:45'),
 (8, 'INV-2025110001', '2025-11-07', 5, 'Banner 1x2', 'Fotocopy', 1000000.00, 1000000.00, 0.00, '2025-11-08', 'Net 30', 'Lunas', 1, '2025-11-07 12:14:20'),
 (9, 'INV-2025110002', '2025-11-07', 2, 'Cetak Poster', 'Printing', 200000.00, 200000.00, 0.00, '2025-11-10', 'Net 30', 'Lunas', 1, '2025-11-07 12:18:26'),
-(10, 'INV-2025110003', '2025-11-12', 6, 'Cetak Banner', 'Printing', 200000.00, 200000.00, 0.00, '2025-11-26', 'Net 30', 'Lunas', 1, '2025-11-12 07:15:53');
+(10, 'INV-2025110003', '2025-11-12', 6, 'Cetak Banner', 'Printing', 200000.00, 200000.00, 0.00, '2025-11-26', 'Net 30', 'Lunas', 1, '2025-11-12 07:15:53'),
+(19, 'INV-2025110004-282', '2025-11-19', 6, 'Cetak Banner', 'Printing', 200000.00, 100000.00, 100000.00, '2025-11-26', 'Net 7', 'Belum Lunas', 1, '2025-11-19 06:03:09'),
+(20, 'INV-202511-281', '2025-11-19', 1, 'Cetak Banner', 'Desain', 900000.00, 900000.00, 0.00, '2025-11-26', 'Net 7', 'Lunas', 1, '2025-11-19 06:09:48');
 
 -- --------------------------------------------------------
 
@@ -514,10 +531,14 @@ CREATE TABLE `transaksi_pendapatan` (
 --
 
 INSERT INTO `transaksi_pendapatan` (`id_transaksi`, `tanggal`, `id_pelanggan`, `jenis_jasa`, `kategori`, `jumlah`, `metode_pembayaran`, `keterangan`, `created_by`, `created_at`) VALUES
+(1, '2025-11-19', 6, 'Cetak A3 Warna', 'Printing', 50000.00, 'Tunai', '', 1, '2025-11-19 04:09:21'),
 (6, '2025-10-10', 5, 'Cetak Brosur A4 Warna 500 lembar + Desain Layout', 'Printing', 2500000.00, 'Tunai', 'Pelanggan walk-in untuk promosi toko', 1, '2025-11-01 02:49:45'),
 (7, '2025-10-15', 5, 'Fotocopy A4 BW 1000 lembar + Jilid Spiral 2 buah', 'Fotocopy', 350000.00, 'Tunai', 'Mahasiswa untuk skripsi', 1, '2025-11-01 02:49:45'),
 (8, '2025-10-25', 3, 'Cetak Kartu Nama 2 box + Desain Logo Perusahaan Baru', 'Printing', 800000.00, 'E-Wallet', 'Startup baru di bidang F&B', 1, '2025-11-01 02:49:45'),
-(9, '2025-11-01', 5, 'Cetak A4 Warna', 'Printing', 100000.00, 'Tunai', '', 1, '2025-11-01 07:25:20');
+(9, '2025-11-01', 5, 'Cetak A4 Warna', 'Printing', 100000.00, 'Tunai', '', 1, '2025-11-01 07:25:20'),
+(10, '2025-11-19', 6, 'Desain Grafis', 'Printing', 50000.00, 'Tunai', '', 1, '2025-11-19 05:34:53'),
+(11, '2025-11-19', 6, 'Desain Grafis', 'Printing', 50000.00, 'Tunai', '', 1, '2025-11-19 05:47:55'),
+(12, '2025-11-19', 1, 'Fotocopy A4', 'Jilid', 150000.00, 'Tunai', '', 1, '2025-11-19 06:23:04');
 
 -- --------------------------------------------------------
 
@@ -691,8 +712,7 @@ ALTER TABLE `transaksi_pendapatan`
 -- Indeks untuk tabel `users`
 --
 ALTER TABLE `users`
-  ADD PRIMARY KEY (`id_user`),
-  ADD UNIQUE KEY `username` (`username`);
+  ADD PRIMARY KEY (`id_user`);
 
 --
 -- AUTO_INCREMENT untuk tabel yang dibuang
@@ -708,7 +728,7 @@ ALTER TABLE `jurnal_penyesuaian`
 -- AUTO_INCREMENT untuk tabel `jurnal_umum`
 --
 ALTER TABLE `jurnal_umum`
-  MODIFY `id_jurnal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=66;
+  MODIFY `id_jurnal` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=75;
 
 --
 -- AUTO_INCREMENT untuk tabel `laba_rugi`
@@ -756,91 +776,31 @@ ALTER TABLE `neraca_saldo_penyesuaian`
 -- AUTO_INCREMENT untuk tabel `pembayaran_piutang`
 --
 ALTER TABLE `pembayaran_piutang`
-  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id_pembayaran` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- AUTO_INCREMENT untuk tabel `pendapatan_lainnya`
 --
 ALTER TABLE `pendapatan_lainnya`
-  MODIFY `id_pendapatan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id_pendapatan` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT untuk tabel `piutang`
 --
 ALTER TABLE `piutang`
-  MODIFY `id_piutang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id_piutang` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT untuk tabel `transaksi_pendapatan`
 --
 ALTER TABLE `transaksi_pendapatan`
-  MODIFY `id_transaksi` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id_transaksi` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT untuk tabel `users`
 --
 ALTER TABLE `users`
   MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
-
---
--- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
---
-
---
--- Ketidakleluasaan untuk tabel `jurnal_penyesuaian`
---
-ALTER TABLE `jurnal_penyesuaian`
-  ADD CONSTRAINT `jurnal_penyesuaian_ibfk_1` FOREIGN KEY (`id_akun_debit`) REFERENCES `master_akun` (`id_akun`),
-  ADD CONSTRAINT `jurnal_penyesuaian_ibfk_2` FOREIGN KEY (`id_akun_kredit`) REFERENCES `master_akun` (`id_akun`),
-  ADD CONSTRAINT `jurnal_penyesuaian_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`id_user`),
-  ADD CONSTRAINT `jurnal_penyesuaian_ibfk_4` FOREIGN KEY (`voided_by`) REFERENCES `users` (`id_user`);
-
---
--- Ketidakleluasaan untuk tabel `jurnal_umum`
---
-ALTER TABLE `jurnal_umum`
-  ADD CONSTRAINT `jurnal_umum_ibfk_1` FOREIGN KEY (`id_akun_debit`) REFERENCES `master_akun` (`id_akun`),
-  ADD CONSTRAINT `jurnal_umum_ibfk_2` FOREIGN KEY (`id_akun_kredit`) REFERENCES `master_akun` (`id_akun`),
-  ADD CONSTRAINT `jurnal_umum_ibfk_3` FOREIGN KEY (`voided_by`) REFERENCES `users` (`id_user`);
-
---
--- Ketidakleluasaan untuk tabel `neraca_saldo`
---
-ALTER TABLE `neraca_saldo`
-  ADD CONSTRAINT `neraca_saldo_ibfk_1` FOREIGN KEY (`id_akun`) REFERENCES `master_akun` (`id_akun`);
-
---
--- Ketidakleluasaan untuk tabel `neraca_saldo_penyesuaian`
---
-ALTER TABLE `neraca_saldo_penyesuaian`
-  ADD CONSTRAINT `neraca_saldo_penyesuaian_ibfk_1` FOREIGN KEY (`id_akun`) REFERENCES `master_akun` (`id_akun`);
-
---
--- Ketidakleluasaan untuk tabel `pembayaran_piutang`
---
-ALTER TABLE `pembayaran_piutang`
-  ADD CONSTRAINT `pembayaran_piutang_ibfk_1` FOREIGN KEY (`id_piutang`) REFERENCES `piutang` (`id_piutang`),
-  ADD CONSTRAINT `pembayaran_piutang_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id_user`);
-
---
--- Ketidakleluasaan untuk tabel `pendapatan_lainnya`
---
-ALTER TABLE `pendapatan_lainnya`
-  ADD CONSTRAINT `pendapatan_lainnya_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`id_user`);
-
---
--- Ketidakleluasaan untuk tabel `piutang`
---
-ALTER TABLE `piutang`
-  ADD CONSTRAINT `piutang_ibfk_1` FOREIGN KEY (`id_pelanggan`) REFERENCES `master_pelanggan` (`id_pelanggan`),
-  ADD CONSTRAINT `piutang_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id_user`);
-
---
--- Ketidakleluasaan untuk tabel `transaksi_pendapatan`
---
-ALTER TABLE `transaksi_pendapatan`
-  ADD CONSTRAINT `transaksi_pendapatan_ibfk_1` FOREIGN KEY (`id_pelanggan`) REFERENCES `master_pelanggan` (`id_pelanggan`),
-  ADD CONSTRAINT `transaksi_pendapatan_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id_user`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
