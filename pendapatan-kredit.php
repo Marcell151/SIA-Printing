@@ -56,7 +56,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     $sisa = $total - $dibayar;
+    // Lock untuk hindari duplicate
+    $conn->query("LOCK TABLES piutang WRITE");
+
     $no_piutang = generate_no_piutang();
+
+    // Double check
+    $check = $conn->query("SELECT id_piutang FROM piutang WHERE no_piutang = '$no_piutang'");
+    if ($check->num_rows > 0) {
+        // Jika duplicate, tambah suffix random
+        $no_piutang .= '-' . rand(100, 999);
+    }
+
+    $conn->query("UNLOCK TABLES");
     $status = ($sisa <= 0) ? 'Lunas' : 'Belum Lunas';
     
     // Begin Transaction
@@ -67,6 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $conn->prepare("INSERT INTO piutang 
         (no_piutang, tanggal, id_pelanggan, jenis_jasa, kategori, total, dibayar, sisa, jatuh_tempo, syarat_kredit, status, created_by) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        if (!$stmt) {
+            throw new Exception("Prepare statement gagal: " . $conn->error);
+        }
+        
         $stmt->bind_param("ssissdddsssi", 
             $no_piutang, 
             $tanggal, 
@@ -221,7 +238,7 @@ include 'includes/header.php';
                     </div>
 
                     <div class="mb-3">
-                        <div class="label">
+                        <div class="alert alert-info py-2">
                             <strong>Sisa Piutang:</strong>
                             <span id="sisa_piutang" class="fw-bold">Rp 0</span>
                         </div>
