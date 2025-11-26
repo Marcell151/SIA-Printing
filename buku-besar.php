@@ -8,9 +8,8 @@ $current_page = 'buku-besar';
 // Get list of accounts
 $accounts = $conn->query("SELECT * FROM master_akun ORDER BY kode_akun");
 
-// Filter
-$id_akun = isset($_GET['id_akun']) ? $_GET['id_akun'] : '';
-$bulan = isset($_GET['bulan']) ? $_GET['bulan'] : date('Y-m');
+// Filter - HANYA AKUN, TANPA PERIODE
+$id_akun = isset($_GET['id_akun']) ? intval($_GET['id_akun']) : 0;
 
 $akun_info = null;
 $transaksi = [];
@@ -20,36 +19,15 @@ if ($id_akun) {
     // Get account info
     $akun_info = $conn->query("SELECT * FROM master_akun WHERE id_akun = $id_akun")->fetch_assoc();
     
-    // Get saldo awal (saldo sebelum periode) - EXCLUDE PENYESUAIAN
-    $bulan_sebelum = date('Y-m-d', strtotime($bulan . '-01 -1 day'));
+    // Saldo awal = 0 (karena menampilkan dari awal)
+    $saldo_awal = 0;
     
-    // Calculate saldo awal from jurnal TANPA jurnal penyesuaian
-    $debit_sebelum = $conn->query("SELECT COALESCE(SUM(nominal), 0) as total 
-                                   FROM jurnal_umum 
-                                   WHERE id_akun_debit = $id_akun 
-                                   AND tanggal <= '$bulan_sebelum'
-                                   AND (tipe_transaksi IS NULL OR tipe_transaksi != 'Jurnal Penyesuaian')")->fetch_assoc()['total'];
-    
-    $kredit_sebelum = $conn->query("SELECT COALESCE(SUM(nominal), 0) as total 
-                                    FROM jurnal_umum 
-                                    WHERE id_akun_kredit = $id_akun 
-                                    AND tanggal <= '$bulan_sebelum'
-                                    AND (tipe_transaksi IS NULL OR tipe_transaksi != 'Jurnal Penyesuaian')")->fetch_assoc()['total'];
-    
-    // Determine saldo awal based on account type
-    $tipe = $akun_info['tipe_akun'];
-    if (strpos($tipe, '1-Aktiva') !== false || strpos($tipe, '5-Beban') !== false) {
-        $saldo_awal = $debit_sebelum - $kredit_sebelum;
-    } else {
-        $saldo_awal = $kredit_sebelum - $debit_sebelum;
-    }
-    
-    // Get transactions for the period - EXCLUDE JURNAL PENYESUAIAN
+    // Get ALL transactions untuk akun ini (TANPA filter periode)
+    // EXCLUDE Jurnal Penyesuaian
     $query = "
         SELECT 'Debit' as posisi, tanggal, deskripsi, nominal, referensi, tipe_transaksi
         FROM jurnal_umum
         WHERE id_akun_debit = $id_akun
-        AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan'
         AND (tipe_transaksi IS NULL OR tipe_transaksi != 'Jurnal Penyesuaian')
         
         UNION ALL
@@ -57,15 +35,16 @@ if ($id_akun) {
         SELECT 'Kredit' as posisi, tanggal, deskripsi, nominal, referensi, tipe_transaksi
         FROM jurnal_umum
         WHERE id_akun_kredit = $id_akun
-        AND DATE_FORMAT(tanggal, '%Y-%m') = '$bulan'
         AND (tipe_transaksi IS NULL OR tipe_transaksi != 'Jurnal Penyesuaian')
         
-        ORDER BY tanggal ASC
+        ORDER BY tanggal ASC, tipe_transaksi ASC
     ";
     
     $result = $conn->query($query);
     
+    $tipe = $akun_info['tipe_akun'];
     $saldo_berjalan = $saldo_awal;
+    
     while ($row = $result->fetch_assoc()) {
         if ($row['posisi'] == 'Debit') {
             if (strpos($tipe, '1-Aktiva') !== false || strpos($tipe, '5-Beban') !== false) {
@@ -100,11 +79,11 @@ include 'includes/header.php';
     </nav>
 </div>
 
-<!-- Filter -->
+<!-- Filter - HANYA AKUN -->
 <div class="card mb-4">
     <div class="card-body">
         <form method="GET" action="" class="row g-3">
-            <div class="col-md-5">
+            <div class="col-md-9">
                 <label class="form-label">Pilih Akun <span class="text-danger">*</span></label>
                 <select name="id_akun" class="form-select" required>
                     <option value="">-- Pilih Akun --</option>
@@ -126,12 +105,8 @@ include 'includes/header.php';
                     </optgroup>
                 </select>
             </div>
-            <div class="col-md-4">
-                <label class="form-label">Periode</label>
-                <input type="month" name="bulan" class="form-control" value="<?php echo $bulan; ?>">
-            </div>
             <div class="col-md-3 d-flex align-items-end">
-                <button type="submit" class="btn btn-primary me-2">
+                <button type="submit" class="btn btn-primary me-2 w-100">
                     <i class="bi bi-search me-1"></i>Tampilkan
                 </button>
                 <?php if ($id_akun): ?>
@@ -150,18 +125,10 @@ include 'includes/header.php';
     <div class="card-header bg-primary text-white">
         <div class="row">
             <div class="col-md-6">
-                <h5 class="mb-0">BUKU BESAR (SEBELUM PENYESUAIAN)</h5>
+                <h5 class="mb-0">BUKU BESAR (SEMUA PERIODE)</h5>
             </div>
             <div class="col-md-6 text-end">
-                <?php 
-                $nama_bulan = array(
-                    '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
-                    '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
-                    '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
-                );
-                $pecah_bulan = explode('-', $bulan);
-                echo $nama_bulan[$pecah_bulan[1]] . ' ' . $pecah_bulan[0];
-                ?>
+                <small>Dari Awal s/d <?php echo format_tanggal(date('Y-m-d')); ?></small>
             </div>
         </div>
     </div>
@@ -185,7 +152,7 @@ include 'includes/header.php';
             </div>
             <div class="col-md-6 text-end">
                 <div class="p-3 bg-light rounded">
-                    <p class="mb-1 small text-muted">Saldo Awal Periode (Sebelum Penyesuaian)</p>
+                    <p class="mb-1 small text-muted">Saldo Awal</p>
                     <h4 class="mb-0 fw-bold"><?php echo format_rupiah($saldo_awal); ?></h4>
                 </div>
             </div>
@@ -214,7 +181,12 @@ include 'includes/header.php';
                             <tr>
                                 <td><?php echo date('d/m/Y', strtotime($tr['tanggal'])); ?></td>
                                 <td><small class="text-muted"><?php echo $tr['referensi']; ?></small></td>
-                                <td><?php echo $tr['deskripsi']; ?></td>
+                                <td>
+                                    <?php echo $tr['deskripsi']; ?>
+                                    <?php if ($tr['tipe_transaksi']): ?>
+                                        <br><small class="badge bg-info"><?php echo $tr['tipe_transaksi']; ?></small>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="text-end">
                                     <?php echo ($tr['posisi'] == 'Debit') ? format_rupiah($tr['nominal']) : '-'; ?>
                                 </td>
@@ -228,7 +200,7 @@ include 'includes/header.php';
                         <?php endforeach; ?>
                         
                         <tr class="table-primary">
-                            <td colspan="5" class="text-end fw-bold">SALDO AKHIR (Sebelum Penyesuaian)</td>
+                            <td colspan="5" class="text-end fw-bold">SALDO AKHIR (<?php echo date('d/m/Y'); ?>)</td>
                             <td class="text-end fw-bold">
                                 <?php echo format_rupiah(end($transaksi)['saldo']); ?>
                             </td>
@@ -236,7 +208,7 @@ include 'includes/header.php';
                     <?php else: ?>
                         <tr>
                             <td colspan="6" class="text-center text-muted py-4">
-                                Tidak ada transaksi pada periode ini
+                                Tidak ada transaksi untuk akun ini
                             </td>
                         </tr>
                         <tr class="table-primary">
@@ -249,12 +221,13 @@ include 'includes/header.php';
         </div>
     </div>
 </div>
+
 <?php else: ?>
 <div class="card">
     <div class="card-body text-center py-5">
         <i class="bi bi-search display-1 text-muted d-block mb-3"></i>
         <h5 class="text-muted">Pilih akun untuk menampilkan buku besar</h5>
-        <p class="text-muted">Gunakan filter di atas untuk memilih akun dan periode</p>
+        <p class="text-muted">Buku besar akan menampilkan <strong>semua transaksi dari awal hingga hari ini</strong></p>
     </div>
 </div>
 <?php endif; ?>

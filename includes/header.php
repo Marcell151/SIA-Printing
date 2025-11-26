@@ -216,6 +216,14 @@ if (!is_logged_in()) {
                 <?php endif; ?> -->
                 
                 <?php if ($_SESSION['user_role'] == 'owner'): ?>
+                    <li class="sidebar-heading">MASTER DATA</li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link <?php echo ($current_page == 'master-akun') ? 'active' : ''; ?>" 
+                           href="master-akun.php">
+                            <i class="bi bi-list-ul"></i>
+                            <span>Master Akun</span>
+                        </a>
+                    </li>
                     <li class="sidebar-heading">PIUTANG</li>
                     <li class="sidebar-item">
                         <a class="sidebar-link <?php echo ($current_page == 'kartu-piutang') ? 'active' : ''; ?>" 
